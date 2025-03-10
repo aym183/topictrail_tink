@@ -1,0 +1,40 @@
+@keyframes button-hover-pulse {
+    0%, 100% {
+      border-color: rgb(75, 85, 99);
+      background-color: rgba(17, 24, 39, 0.5);
+      box-shadow: var(--tw-ring-offset-shadow, 0 0 #0000), var(--tw-ring-shadow, 0 0 #0000), var(--tw-shadow);
+}
+    50% {
+      border-color: rgb(156, 163, 175);
+      background-color: rgba(31, 41, 55, 0.5);
+      box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+    }
+}
+
+.action-button:disabled {
+    display: block;
+    pointer-events: none;
+    opacity: 0.5; 
+}
+
+.action-button {
+    transition: transform 0.2s ease-in-out;
+}
+.action-button:hover, .child-button:focus, .child-button.clicked {
+    transform: translateY(-4px);
+    border-color: rgb(156, 163, 175);
+    background-color: rgba(31, 41, 55, 0.5);
+    box-shadow: 0 20px 25px -5px rgb(0 0 0 / 0.2), 0 8px 10px -6px rgb(0 0 0 / 0.2);
+}
+  
+  .summary-box p {
+    z-index: 1000;
+    color: white;
+    padding: 0px 25px;
+  }
+  
+  .summary-box-header {
+    display: flex;
+    justify-content: end;
+    padding: 0px 20px;
+  }
