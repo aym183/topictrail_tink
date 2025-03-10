@@ -167,4 +167,50 @@ export class BackendHandler {
       };
     }
   }
+
+  /**
+   * Fetches academic sources for a given topic
+   */
+  static async fetchAcademicSources(topic: string, onData: (source: any) => void): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.API_BASE_URL}/fetch-academic-sources?topic=${encodeURIComponent(topic)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunk = decoder.decode(value, { stream: true });
+        
+        // Process each line (each paper)
+        const lines = chunk.split('\n').filter(line => line.trim());
+        for (const line of lines) {
+          try {
+            const paper = JSON.parse(line);
+            onData(paper);
+          } catch (e) {
+            console.error('Error parsing paper:', e);
+          }
+        }
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to fetch academic sources',
+      };
+    }
+  }
 } 
