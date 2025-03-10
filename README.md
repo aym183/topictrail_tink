@@ -1,4 +1,4 @@
-# TopicTrail Tink 🌟
+# TopicTrail 🌟
 
 An interactive knowledge exploration tool built during the 2-hour AI Tinkerers Hackathon. TopicTrail helps users visualize and explore complex topics through an interactive graph interface, providing summaries and academic sources for deeper understanding.
 
@@ -13,6 +13,35 @@ An interactive knowledge exploration tool built during the 2-hour AI Tinkerers H
 - **Academic Integration**: Automatically fetches relevant papers from Semantic Scholar API
 - **Context-Aware**: Maintains topic context throughout the exploration chain
 - **Beautiful UI**: Clean, modern interface with a star-field animation background
+
+## How the Knowledge Graph Works 🧠
+
+The knowledge graph is built dynamically using GPT-4 and grows as you explore:
+
+1. **Initial Graph Generation**:
+   - Enter any topic (e.g., "Quantum Computing")
+   - GPT-4 identifies 4 fundamental aspects of the topic
+   - Creates a root node (main topic) connected to these 4 key aspects
+   - Example: Quantum Computing → History, Applications, Hardware, Algorithms
+
+2. **Node Expansion**:
+   - Click any node and select "Expand"
+   - GPT-4 generates 3 subtopics specific to that node
+   - New nodes are added while maintaining context
+   - Example: Hardware → Qubits, Gates, Control Systems
+
+3. **Content Generation**:
+   - **Summarize**: Generates a detailed overview of the node in context
+   - **Deep Dive**: 
+     - Creates a 50-word summary
+     - Searches Semantic Scholar for relevant academic papers
+     - Papers are filtered by citation count and relevance
+     - Results maintain context of the full topic path
+
+4. **Context Awareness**:
+   - Each node remembers its path to the root
+   - Summaries and academic sources consider the full context
+   - Example: "Algorithms" in Quantum Computing vs. Classical Computing
 
 ## Tech Stack 💻
 
