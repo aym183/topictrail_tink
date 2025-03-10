@@ -37,7 +37,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           onKeyDown={handleKeyPress}
           {...props}
         />
-        <button 
+        {/* <button 
           className="absolute right-2 h-10 px-4 rounded-md bg-transparent border border-gray-600 text-gray-300 hover:bg-gray-800/30 hover:border-gray-400 transition-colors duration-200"
           onClick={async () => {
             if (ref && typeof ref === 'object' && 'current' in ref && ref.current) {
@@ -55,7 +55,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
           }}
         >
           Go
-        </button>
+        </button> */}
       </div>
     )
   }

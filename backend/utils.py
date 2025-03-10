@@ -63,7 +63,6 @@ def add_base_nodes_and_edges(nodes: list[str], root_node: str):
     return response.data[0]["id"]
 
 def add_nodes_and_edges(branch_id: str, node: str, parent_id: str):
-
     fetched_branch = (
         supabase.table("branches")
             .select("nodes", "edges", "actions")
@@ -72,14 +71,41 @@ def add_nodes_and_edges(branch_id: str, node: str, parent_id: str):
     )
 
     nodes = fetched_branch.data[0]["nodes"]
-    nodes_length = len(fetched_branch.data[0]["nodes"])
-    nodes.append({"id": str(nodes_length + 1), "label": node})
-
     edges = fetched_branch.data[0]["edges"]
-    edges.append({"source": parent_id, "target": str(nodes_length + 1), "id": f"{parent_id}-{nodes_length + 1}", "label": f"{parent_id}-{nodes_length + 1}"})
-
+    
+    # Check if node already exists
+    existing_node = next((n for n in nodes if n["label"] == node), None)
+    
+    if existing_node:
+        # If node exists, check if edge doesn't exist yet
+        if not any(e["source"] == parent_id and e["target"] == existing_node["id"] for e in edges):
+            new_edge = {
+                "source": parent_id,
+                "target": existing_node["id"],
+                "id": f"{parent_id}-{existing_node['id']}",
+                "label": f"{parent_id}-{existing_node['id']}"
+            }
+            edges.append(new_edge)
+    else:
+        # Add new node and edge
+        nodes_length = len(nodes)
+        new_node = {"id": str(nodes_length + 1), "label": node}
+        nodes.append(new_node)
+        
+        new_edge = {
+            "source": parent_id, 
+            "target": str(nodes_length + 1), 
+            "id": f"{parent_id}-{nodes_length + 1}", 
+            "label": f"{parent_id}-{nodes_length + 1}"
+        }
+        edges.append(new_edge)
+    
     actions = fetched_branch.data[0]["actions"]
-    actions.append({"action": "expand_node", "node": node, "date": datetime.now().isoformat()})
+    actions.append({
+        "action": "expand_node", 
+        "node": node, 
+        "date": datetime.now().isoformat()
+    })
 
     updated_branch = (
         supabase.table("branches")
