@@ -1,10 +1,14 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import StreamingResponse
 from utils import add_base_nodes_and_edges, add_nodes_and_edges, fetch_nodes_and_edges, add_summarise_action
 import os
 from dotenv import load_dotenv
 from openai import OpenAI
+import httpx
+from typing import List, Dict, Any
+import json
+import asyncio
 # from mem0 import MemoryClient
 
 '''This file is used to interact with the APIs and create the tree structure for the app.'''
@@ -108,5 +112,99 @@ async def expand_element(branch_id: str, parent_id: str, parent_value: str, root
 @app.get("/generate-knowledge-sources")
 async def generate_knowledge_sources():
     return {"message": "Generating knowledge sources"}
+
+@app.get("/fetch-academic-sources")
+async def fetch_academic_sources(topic: str):
+    """
+    Streams academic sources from Semantic Scholar API for a given topic.
+    Returns top cited papers without venue filtering.
+    """
+    async def generate_sources():
+        try:
+            print(f"Searching for topic: {topic}")
+            search_query = f'"{topic}" year>2010'  # Extended year range
+            print(f"Full search query: {search_query}")
+            
+            max_retries = 3
+            retry_delay = 2
+            
+            for attempt in range(max_retries):
+                try:
+                    async with httpx.AsyncClient() as client:
+                        print(f"Making request to Semantic Scholar API (attempt {attempt + 1})...")
+                        response = await client.get(
+                            "https://api.semanticscholar.org/graph/v1/paper/search",
+                            params={
+                                "query": search_query,
+                                "limit": 20,
+                                "fields": "title,url,venue,year,abstract,citationCount"
+                            }
+                        )
+                        
+                        print(f"API Response status: {response.status_code}")
+                        
+                        if response.status_code == 429:  # Too Many Requests
+                            if attempt < max_retries - 1:
+                                print(f"Rate limited. Waiting {retry_delay} seconds before retry...")
+                                await asyncio.sleep(retry_delay)
+                                retry_delay *= 3
+                                continue
+                            else:
+                                print("Rate limit reached and max retries exceeded")
+                                yield json.dumps({
+                                    "error": "The academic search service is temporarily busy. Please wait a moment and try again."
+                                }) + "\n"
+                                return
+                        
+                        if response.status_code != 200:
+                            print(f"Error response: {response.text}")
+                            yield json.dumps({
+                                "error": "Unable to fetch academic sources at the moment. Please try again later."
+                            }) + "\n"
+                            return
+                        
+                        data = response.json()
+                        papers = data.get("data", [])
+                        print(f"Found {len(papers)} papers in total")
+                        
+                        if not papers:
+                            yield json.dumps({
+                                "error": "No papers found for this topic. Try a different search term."
+                            }) + "\n"
+                            return
+                        
+                        # Sort papers by citation count
+                        papers.sort(key=lambda x: x.get("citationCount", 0), reverse=True)
+                        
+                        # Take top 5 papers
+                        for paper in papers[:5]:
+                            formatted_paper = {
+                                "title": paper.get("title", ""),
+                                "url": paper.get("url", ""),
+                                "source": f"{paper.get('venue', 'Unknown')} {paper.get('year', '')}",
+                                "citations": paper.get("citationCount", 0)
+                            }
+                            print(f"Streaming paper: {formatted_paper}")
+                            yield json.dumps(formatted_paper) + "\n"
+                        
+                        print("Finished streaming papers")
+                        break  # Success, exit retry loop
+                
+                except Exception as e:
+                    print(f"Request error: {str(e)}")
+                    if attempt < max_retries - 1:
+                        await asyncio.sleep(retry_delay)
+                        retry_delay *= 3
+                    else:
+                        raise
+
+        except Exception as e:
+            print(f"Error fetching academic sources: {str(e)}")
+            print(f"Error details: {e.__class__.__name__}")
+            yield json.dumps({
+                "error": "Unable to connect to the academic search service. Please try again later."
+            }) + "\n"
+
+    return StreamingResponse(generate_sources(), media_type="text/plain")
 
 
