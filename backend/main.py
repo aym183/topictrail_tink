@@ -114,15 +114,15 @@ async def generate_knowledge_sources():
     return {"message": "Generating knowledge sources"}
 
 @app.get("/fetch-academic-sources")
-async def fetch_academic_sources(topic: str):
+async def fetch_academic_sources(topic: str, root: str):
     """
     Streams academic sources from Semantic Scholar API for a given topic.
     Returns top cited papers without venue filtering.
     """
     async def generate_sources():
         try:
-            print(f"Searching for topic: {topic}")
-            search_query = f'"{topic}" year>2010'  # Extended year range
+            print(f"Searching for topic: {topic} in context of {root}")
+            search_query = f'"{topic}" "{root}" year>2010'  # Include root context in search
             print(f"Full search query: {search_query}")
             
             max_retries = 3
@@ -206,5 +206,37 @@ async def fetch_academic_sources(topic: str):
             }) + "\n"
 
     return StreamingResponse(generate_sources(), media_type="text/plain")
+
+@app.get("/generate-topic-summary")
+async def generate_topic_summary(topic: str, root: str):
+    """
+    Generates a concise summary of a topic using ChatGPT.
+    """
+    async def generate_summary():
+        try:
+            summary = client.chat.completions.create(
+                model="gpt-4o-mini",
+                messages=[
+                    {"role": "system", "content": "You are a subject matter expert. Provide a concise, informative summary of the given topic in exactly 50 words. Focus on key concepts and current state, specifically in the context of the root topic. Use clear, academic language."},
+                    {"role": "user", "content": f"Provide a 50-word summary of {topic} specifically in the context of {root}"}
+                ],
+                temperature=0.2,
+                stream=True,
+                max_completion_tokens=100
+            )
+
+            for chunk in summary:
+                content = chunk.choices[0].delta.content
+                if content is not None:
+                    for char in content:
+                        yield char
+                else:
+                    print("Received None content from OpenAI API")
+
+        except Exception as e:
+            print(f"Error during streaming: {e}")
+            yield "Unable to generate summary at this time."
+
+    return StreamingResponse(generate_summary(), media_type="text/plain")
 
 

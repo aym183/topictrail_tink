@@ -171,9 +171,9 @@ export class BackendHandler {
   /**
    * Fetches academic sources for a given topic
    */
-  static async fetchAcademicSources(topic: string, onData: (source: any) => void): Promise<ApiResponse> {
+  static async fetchAcademicSources(topic: string, root: string, onData: (source: any) => void): Promise<ApiResponse> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/fetch-academic-sources?topic=${encodeURIComponent(topic)}`, {
+      const response = await fetch(`${this.API_BASE_URL}/fetch-academic-sources?topic=${encodeURIComponent(topic)}&root=${encodeURIComponent(root)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -210,6 +210,42 @@ export class BackendHandler {
       return {
         success: false,
         error: 'Failed to fetch academic sources',
+      };
+    }
+  }
+
+  /**
+   * Generates a concise summary of a topic
+   */
+  static async generateTopicSummary(topic: string, root: string, onData: (chunk: string) => void): Promise<ApiResponse> {
+    try {
+      const response = await fetch(`${this.API_BASE_URL}/generate-topic-summary?topic=${encodeURIComponent(topic)}&root=${encodeURIComponent(root)}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      if (!response.body) {
+        throw new Error('No response body');
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder('utf-8');
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        const chunk = decoder.decode(value, { stream: true });
+        onData(chunk);
+      }
+
+      return { success: true };
+    } catch (error) {
+      return {
+        success: false,
+        error: 'Failed to generate topic summary',
       };
     }
   }
