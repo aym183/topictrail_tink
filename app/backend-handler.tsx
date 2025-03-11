@@ -17,7 +17,7 @@ interface ApiResponse {
 }
 
 export class BackendHandler {
-  private static readonly baseUrl = 'http://localhost:8000';
+  private static readonly baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
   static async checkHealth(): Promise<boolean> {
     try {
