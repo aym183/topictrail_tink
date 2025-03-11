@@ -2,10 +2,13 @@
 
 import React, { useRef, forwardRef, useState } from 'react';
 import dynamic from 'next/dynamic';
-import { GraphCanvas, GraphCanvasRef, useSelection } from 'reagraph';
+import { useSelection } from 'reagraph';
 
-// Dynamically import the GraphCanvas component with no SSR
-const DynamicGraphCanvas = dynamic(() => import('reagraph').then(mod => mod.GraphCanvas), { ssr: false });
+// Remove direct import of reagraph
+const GraphCanvas = dynamic(() => import('reagraph').then(mod => mod.GraphCanvas), { 
+  ssr: false,
+  loading: () => <div>Loading graph...</div>
+});
 
 // const nodes = [
 //   { id: '1', label: 'Semiconductor Chips' },
@@ -83,18 +86,25 @@ interface MainGraphProps {
   onCanvasClick: () => void;
 }
 
-export const MainGraph = forwardRef<GraphCanvasRef, MainGraphProps>(
+export const MainGraph = forwardRef<any, MainGraphProps>(
   ({ nodes, edges, onNodeClick, onCanvasClick }, ref) => {
-
-    const graphRef = useRef<GraphCanvasRef | null>(null);
+    const [mounted, setMounted] = useState(false);
+    const graphRef = useRef(null);
     const [selectedNode, setSelectedNode] = useState<string | null>(null);
-
-    const {
-      selections,
-    } = useSelection({
+    
+    // Move useSelection before any conditional returns
+    const { selections = [] } = useSelection({
       ref: graphRef,
       type: 'single'
     });
+
+    React.useEffect(() => {
+      setMounted(true);
+    }, []);
+
+    if (!mounted) {
+      return <div>Loading graph...</div>;
+    }
     
     const handleNodeClick = (node: any) => {
       setSelectedNode(node.id);
@@ -111,12 +121,12 @@ export const MainGraph = forwardRef<GraphCanvasRef, MainGraphProps>(
     };
 
     return (
-      <div>
-        <DynamicGraphCanvas
+      <div style={{ width: '100%', height: '100%' }}>
+        <GraphCanvas
           ref={ref}
           nodes={nodes.map(node => ({
             ...node,
-            fill: getNodeFill(node.id) // Apply conditional fill color
+            fill: getNodeFill(node.id)
           }))}
           edges={edges}
           layoutType={"forceDirected2d"}
@@ -131,3 +141,5 @@ export const MainGraph = forwardRef<GraphCanvasRef, MainGraphProps>(
     );
   }
 );
+
+MainGraph.displayName = 'MainGraph';

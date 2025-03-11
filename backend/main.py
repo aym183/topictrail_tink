@@ -10,6 +10,7 @@ from typing import List, Dict, Any
 import json
 import asyncio
 # from mem0 import MemoryClient
+from pydantic import BaseModel
 
 '''This file is used to interact with the APIs and create the tree structure for the app.'''
 
@@ -28,6 +29,11 @@ app.add_middleware(
 load_dotenv()
 # memo_client = MemoryClient(api_key=os.getenv('MEM0AI_API_KEY'))
 client = OpenAI(api_key=os.getenv('OPENAI_API_KEY'))
+
+# Health check endpoint
+@app.get("/health")
+async def health_check():
+    return {"status": "healthy", "message": "Backend is running"}
 
 @app.get("/generate-base-tree")
 async def root(prompt: str):

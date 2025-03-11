@@ -17,7 +17,18 @@ interface ApiResponse {
 }
 
 export class BackendHandler {
-  private static readonly API_BASE_URL = 'http://127.0.0.1:8000';
+  private static readonly baseUrl = 'http://localhost:8000';
+
+  static async checkHealth(): Promise<boolean> {
+    try {
+      const response = await fetch(`${this.baseUrl}/health`);
+      const data = await response.json();
+      return data.status === 'healthy';
+    } catch (error) {
+      console.error('Backend health check failed:', error);
+      return false;
+    }
+  }
 
   /**
    * Processes the initial user input and retrieves topic suggestions
@@ -25,7 +36,7 @@ export class BackendHandler {
 
   static async processUserInput(input: string): Promise<ApiResponse> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/generate-base-tree?prompt=${encodeURIComponent(input)}`, {
+      const response = await fetch(`${this.baseUrl}/generate-base-tree?prompt=${encodeURIComponent(input)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -55,7 +66,7 @@ export class BackendHandler {
   static async fetchNodesAndEdges(branchId: string) {
 
     try {
-      const response = await fetch(`${this.API_BASE_URL}/fetch-nodes-and-edges?branch_id=${encodeURIComponent(branchId)}`, {
+      const response = await fetch(`${this.baseUrl}/fetch-nodes-and-edges?branch_id=${encodeURIComponent(branchId)}`, {
             method: 'GET',
             headers: {
               'Content-Type': 'application/json',
@@ -76,7 +87,7 @@ export class BackendHandler {
    */
     static async expandElement(branchId: string, parentId: string, parentValue: string, root: string): Promise<ApiResponse> {
       try {
-        const response = await fetch(`${this.API_BASE_URL}/expand-element?branch_id=${encodeURIComponent(branchId)}&parent_id=${encodeURIComponent(parentId)}&parent_value=${encodeURIComponent(parentValue)}&root=${encodeURIComponent(root)}`, {
+        const response = await fetch(`${this.baseUrl}/expand-element?branch_id=${encodeURIComponent(branchId)}&parent_id=${encodeURIComponent(parentId)}&parent_value=${encodeURIComponent(parentValue)}&root=${encodeURIComponent(root)}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
@@ -111,7 +122,7 @@ export class BackendHandler {
    */
   static async generateSummary(topic: string, root: string, branch_id: string, parent_value: string, onData: (chunk: string) => void): Promise<ApiResponse> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/summarise-element?topic=${encodeURIComponent(topic)}&root=${encodeURIComponent(root)}&branch_id=${encodeURIComponent(branch_id)}&parent_value=${encodeURIComponent(parent_value)}`, {
+      const response = await fetch(`${this.baseUrl}/summarise-element?topic=${encodeURIComponent(topic)}&root=${encodeURIComponent(root)}&branch_id=${encodeURIComponent(branch_id)}&parent_value=${encodeURIComponent(parent_value)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -147,7 +158,7 @@ export class BackendHandler {
    */
   static async generateKnowledge(topic: string): Promise<ApiResponse> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/generate-knowledge`, {
+      const response = await fetch(`${this.baseUrl}/generate-knowledge`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -173,7 +184,7 @@ export class BackendHandler {
    */
   static async fetchAcademicSources(topic: string, root: string, onData: (source: any) => void): Promise<ApiResponse> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/fetch-academic-sources?topic=${encodeURIComponent(topic)}&root=${encodeURIComponent(root)}`, {
+      const response = await fetch(`${this.baseUrl}/fetch-academic-sources?topic=${encodeURIComponent(topic)}&root=${encodeURIComponent(root)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -219,7 +230,7 @@ export class BackendHandler {
    */
   static async generateTopicSummary(topic: string, root: string, onData: (chunk: string) => void): Promise<ApiResponse> {
     try {
-      const response = await fetch(`${this.API_BASE_URL}/generate-topic-summary?topic=${encodeURIComponent(topic)}&root=${encodeURIComponent(root)}`, {
+      const response = await fetch(`${this.baseUrl}/generate-topic-summary?topic=${encodeURIComponent(topic)}&root=${encodeURIComponent(root)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
