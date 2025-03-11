@@ -17,16 +17,37 @@ interface ApiResponse {
 }
 
 export class BackendHandler {
-  private static readonly baseUrl = process.env.NEXT_PUBLIC_API_URL;
+  private static readonly baseUrl = 'https://totpictrail-backend-7d9b84224f41.herokuapp.com';
+
+  static getBaseUrl(): string {
+    return this.baseUrl;
+  }
 
   static async checkHealth(): Promise<boolean> {
     try {
+      console.log('Attempting to connect to:', `${this.baseUrl}/health`);
       const response = await fetch(`${this.baseUrl}/health`);
+      console.log('Response status:', response.status);
       const data = await response.json();
+      console.log('Response data:', data);
       return data.status === 'healthy';
     } catch (error) {
-      console.error('Backend health check failed:', error);
+      console.error('Backend health check failed. Full error:', error);
       return false;
+    }
+  }
+
+  static async testBackendConnection() {
+    try {
+      // Test ping endpoint
+      const pingResponse = await fetch(`${this.baseUrl}/ping`);
+      console.log('Ping response:', await pingResponse.text());
+      
+      // Test health endpoint
+      const healthResponse = await fetch(`${this.baseUrl}/health`);
+      console.log('Health response:', await healthResponse.text());
+    } catch (error) {
+      console.error('Connection test failed:', error);
     }
   }
 

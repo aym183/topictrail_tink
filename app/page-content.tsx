@@ -21,25 +21,25 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
   const [topicSummary, setTopicSummary] = useState('');
   const graphRef = useRef(null);
+  const [showDebugModal, setShowDebugModal] = useState(false);
 
-  // Check backend health periodically
   useEffect(() => {
     const checkBackendHealth = async () => {
+      // Test connection first
+      await BackendHandler.testBackendConnection();
+      
       const isHealthy = await BackendHandler.checkHealth();
       setIsBackendHealthy(isHealthy);
       if (!isHealthy) {
         setErrorMessage('Backend is not running. Please start the backend server.');
+        setShowDebugModal(true);
       } else {
         setErrorMessage('');
       }
     };
 
-    // Check immediately
     checkBackendHealth();
-
-    // Then check every 30 seconds
     const interval = setInterval(checkBackendHealth, 30000);
-
     return () => clearInterval(interval);
   }, []);
 
@@ -224,6 +224,16 @@ export default function Home() {
     }
   };
 
+  const handleDebugClick = async () => {
+    const response = await fetch('https://totpictrail-backend-7d9b84224f41.herokuapp.com/ping');
+    const data = await response.text();
+    alert(`Response from backend: ${data}`);
+  };
+
+  const handleCloseDebugModal = () => {
+    setShowDebugModal(false);
+  };
+
   // Don't render anything until we're on the client side
   if (!mounted) return null;
 
@@ -233,8 +243,60 @@ export default function Home() {
       {errorMessage && (
         <div className="fixed top-0 left-0 right-0 bg-red-600 text-white p-4 text-center z-50">
           {errorMessage}
+          <span 
+            onClick={handleDebugClick} 
+            className="cursor-pointer ml-2 inline-flex items-center"
+            title="Click to test backend connection"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor" className="w-5 h-5 text-white">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m0 0l-3-3m3 3l3-3" />
+            </svg>
+          </span>
         </div>
       )}
+
+      {/* Debug Modal */}
+      {showDebugModal && (
+        <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-75 z-50">
+          <div className="bg-white p-6 rounded-lg shadow-lg text-black max-w-2xl">
+            <h2 className="text-lg font-bold mb-4">Backend Connection Debug</h2>
+            <div className="space-y-4">
+              <div>
+                <h3 className="font-semibold">Connection Details:</h3>
+                <ul className="list-disc list-inside pl-4 space-y-2">
+                  <li>Backend URL: <code className="bg-gray-100 px-2 py-1 rounded">{BackendHandler.baseUrl}</code></li>
+                  <li>Health Endpoint: <code className="bg-gray-100 px-2 py-1 rounded">{`${BackendHandler.baseUrl}/health`}</code></li>
+                  <li>Ping Endpoint: <code className="bg-gray-100 px-2 py-1 rounded">{`${BackendHandler.baseUrl}/ping`}</code></li>
+                </ul>
+              </div>
+              <div>
+                <h3 className="font-semibold">Troubleshooting Steps:</h3>
+                <ol className="list-decimal list-inside pl-4 space-y-2">
+                  <li>Check if the backend is running by clicking "Test Connection"</li>
+                  <li>Verify that the backend URL is correct</li>
+                  <li>Check browser console for detailed error messages</li>
+                  <li>Ensure CORS is properly configured on the backend</li>
+                </ol>
+              </div>
+              <div className="flex space-x-4 mt-6">
+                <button 
+                  onClick={() => window.open(`${BackendHandler.baseUrl}/ping`, '_blank')}
+                  className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
+                >
+                  Test Connection
+                </button>
+                <button 
+                  onClick={handleCloseDebugModal}
+                  className="bg-gray-300 text-black px-4 py-2 rounded hover:bg-gray-400"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {!showDiagram ? (
         <>
           <canvas
