@@ -10,6 +10,14 @@ const nextConfig = {
     config.externals = [...(config.externals || []), { canvas: "canvas" }];
     return config;
   },
+  // Add support for static file serving
+  images: {
+    unoptimized: true
+  },
+  // Ensure all routes are treated as client-side
+  experimental: {
+    missingSuspenseWithCSRError: false
+  }
 }
 
 module.exports = nextConfig

@@ -2,11 +2,16 @@
   "name": "nextjs",
   "version": "0.1.0",
   "private": true,
+  "engines": {
+    "node": "18.x",
+    "npm": "9.x"
+  },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "postinstall": "npm run build"
   },
   "dependencies": {
     "@radix-ui/react-aspect-ratio": "^1.1.0",
