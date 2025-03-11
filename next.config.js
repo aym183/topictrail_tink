@@ -13,10 +13,6 @@ const nextConfig = {
   // Add support for static file serving
   images: {
     unoptimized: true
-  },
-  // Ensure all routes are treated as client-side
-  experimental: {
-    missingSuspenseWithCSRError: false
   }
 }
 

@@ -1,3 +1,3 @@
 'use client'
 
-export { default } from '@/app/page-wrapper'
+export { default } from './page-wrapper';
