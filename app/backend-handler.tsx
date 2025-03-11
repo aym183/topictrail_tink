@@ -108,22 +108,36 @@ export class BackendHandler {
    */
     static async expandElement(branchId: string, parentId: string, parentValue: string, root: string): Promise<ApiResponse> {
       try {
-        const response = await fetch(`${this.baseUrl}/expand-element?branch_id=${encodeURIComponent(branchId)}&parent_id=${encodeURIComponent(parentId)}&parent_value=${encodeURIComponent(parentValue)}&root=${encodeURIComponent(root)}`, {
+        const queryParams = new URLSearchParams({
+          branch_id: branchId,
+          parent_id: parentId,
+          parent_value: parentValue,
+          root: root
+        });
+
+        const response = await fetch(`${this.baseUrl}/expand-element?${queryParams.toString()}`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           }
         });
-  
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Expand request failed:', errorText);
+          throw new Error(`Failed to expand element: ${response.status} ${errorText}`);
+        }
+
         const data = await response.json();
         return {
-          success: response.ok,
+          success: true,
           data: data,
         };
       } catch (error) {
+        console.error('Error in expandElement:', error);
         return {
           success: false,
-          error: 'Failed to expand element',
+          error: error instanceof Error ? error.message : 'Failed to expand element',
         };
       }
     }

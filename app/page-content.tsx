@@ -6,14 +6,20 @@ import { useState, useEffect, useRef, useCallback } from "react"
 import { BackendHandler } from "@/app/backend-handler"
 import '@/app/styles/page.css';
 
+interface Node {
+  id: string;
+  label: string;
+  // Add other node properties as needed
+}
+
 export default function Home() {
   const [showDiagram, setShowDiagram] = useState(false);
   const [isBackendHealthy, setIsBackendHealthy] = useState<boolean | null>(null);
   const [errorMessage, setErrorMessage] = useState<string>('');
   const [userInput, setUserInput] = useState('');
-  const [nodes, setNodes] = useState([]);
-  const [edges, setEdges] = useState([]);
-  const [selectedNode, setSelectedNode] = useState(null);
+  const [nodes, setNodes] = useState<Node[]>([]);
+  const [edges, setEdges] = useState<any[]>([]);
+  const [selectedNode, setSelectedNode] = useState<Node | null>(null);
   const [branchId, setBranchId] = useState('');
   const [treeRoot, setTreeRoot] = useState('');
   const [summary, setSummary] = useState('');
@@ -66,8 +72,8 @@ export default function Home() {
     const branchId = sessionStorage.getItem('branch_id');
     if (branchId) {
       const subscription = BackendHandler.subscribeToBranchChanges(branchId, (newNodes, newEdges) => {
-        setNodes(newNodes as any);
-        setEdges(newEdges as any);
+        setNodes(newNodes as Node[]);
+        setEdges(newEdges as Node[]);
       });
 
       // return () => {
@@ -140,13 +146,26 @@ export default function Home() {
     };
   }, [mounted, showDiagram, drawStar]);
 
-  const handleEnterPress = (fetchedNodes: any[], fetchedEdges: any[]) => {
-    setNodes(fetchedNodes as any);
-    setEdges(fetchedEdges as any);
-    setShowDiagram(true);
+  const handleEnterPress = async (input: string) => {
+    try {
+      const response = await BackendHandler.processUserInput(input);
+      if (response.success && response.data) {
+        const branchId = response.data.branch_id;
+        if (branchId) {
+          const graphData = await BackendHandler.fetchNodesAndEdges(branchId);
+          setNodes(graphData.nodes);
+          setEdges(graphData.edges);
+          setShowDiagram(true);
+        }
+      } else {
+        console.error('Failed to process input:', response.error);
+      }
+    } catch (error) {
+      console.error('Error processing input:', error);
+    }
   };
 
-  const handleNodeClick = (node: any) => {
+  const handleNodeClick = (node: Node) => {
     setSelectedNodeId(node.id);
     setButtonsDisabled(false);
   };
@@ -155,16 +174,16 @@ export default function Home() {
     setShowSummaryBox(true);
     setSummaryContent(""); // Clear previous content
 
-    const selectedNode = nodes.find((node: any) => node.id === selectedNodeId);
+    const selectedNode = nodes.find((node: Node) => node.id === selectedNodeId);
     const branchId = sessionStorage.getItem('branch_id');
     const root = sessionStorage.getItem('tree_root');
 
     if (selectedNode && branchId && root) {
       await BackendHandler.generateSummary(
-        (selectedNode as any).label,
+        selectedNode.label,
         root,
         branchId,
-        (selectedNode as any).label,
+        selectedNode.label,
         (chunk) => {
           const formattedChunk = chunk.replace(/\*\*(.*?)\*\*/g, '\n\n<strong>$1</strong>\n\n');
           setSummaryContent(prev => prev + formattedChunk);
@@ -188,17 +207,17 @@ export default function Home() {
     setSourcesContent([]); // Clear previous content
     setSourcesSummary(""); // Clear previous summary
 
-    const selectedNode = nodes.find((node: any) => node.id === selectedNodeId);
+    const selectedNode = nodes.find((node: Node) => node.id === selectedNodeId);
     const root = sessionStorage.getItem('tree_root');
     
     if (selectedNode && root) {
-      console.log("Fetching academic sources for:", (selectedNode as any).label);
+      console.log("Fetching academic sources for:", selectedNode.label);
       // First get the summary
-      await BackendHandler.generateTopicSummary((selectedNode as any).label, root, (chunk) => {
+      await BackendHandler.generateTopicSummary(selectedNode.label, root, (chunk) => {
         setSourcesSummary(prev => prev + chunk);
       });
       // Then get the sources
-      await BackendHandler.fetchAcademicSources((selectedNode as any).label, root, (source) => {
+      await BackendHandler.fetchAcademicSources(selectedNode.label, root, (source) => {
         console.log("Received source:", source);
         if (source.error) {
           setSourcesContent([]);
@@ -214,13 +233,51 @@ export default function Home() {
   };
 
   const handleExpandButtonClick = async () => {
-    if (!selectedNodeId) return;
-  
-    const selectedNode = nodes.find((node: any) => node.id === selectedNodeId);
+    if (!selectedNodeId) {
+      console.error('No node selected');
+      return;
+    }
+
+    const selectedNode = nodes.find((node: Node) => node.id === selectedNodeId);
     const branchId = sessionStorage.getItem('branch_id');
     const root = sessionStorage.getItem('tree_root');
-    if (selectedNode && branchId && root) {
-      const response = await BackendHandler.expandElement(branchId, (selectedNode as any).id, (selectedNode as any).label, root);
+    
+    console.log('Expanding node:', {
+      selectedNode,
+      branchId,
+      root
+    });
+
+    if (!selectedNode || !branchId || !root) {
+      console.error('Missing required data:', {
+        hasSelectedNode: !!selectedNode,
+        hasBranchId: !!branchId,
+        hasRoot: !!root
+      });
+      return;
+    }
+
+    try {
+      setIsLoading(true);
+      const response = await BackendHandler.expandElement(
+        branchId,
+        selectedNode.id,
+        selectedNode.label,
+        root
+      );
+
+      if (response.success && response.data) {
+        console.log('Expand successful:', response.data);
+        const updatedGraph = await BackendHandler.fetchNodesAndEdges(branchId);
+        setNodes(updatedGraph.nodes);
+        setEdges(updatedGraph.edges);
+      } else {
+        console.error('Failed to expand:', response.error);
+      }
+    } catch (error) {
+      console.error('Error expanding node:', error);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -264,9 +321,9 @@ export default function Home() {
               <div>
                 <h3 className="font-semibold">Connection Details:</h3>
                 <ul className="list-disc list-inside pl-4 space-y-2">
-                  <li>Backend URL: <code className="bg-gray-100 px-2 py-1 rounded">{BackendHandler.baseUrl}</code></li>
-                  <li>Health Endpoint: <code className="bg-gray-100 px-2 py-1 rounded">{`${BackendHandler.baseUrl}/health`}</code></li>
-                  <li>Ping Endpoint: <code className="bg-gray-100 px-2 py-1 rounded">{`${BackendHandler.baseUrl}/ping`}</code></li>
+                  <li>Backend URL: <code className="bg-gray-100 px-2 py-1 rounded">{BackendHandler.getBaseUrl()}</code></li>
+                  <li>Health Endpoint: <code className="bg-gray-100 px-2 py-1 rounded">{`${BackendHandler.getBaseUrl()}/health`}</code></li>
+                  <li>Ping Endpoint: <code className="bg-gray-100 px-2 py-1 rounded">{`${BackendHandler.getBaseUrl()}/ping`}</code></li>
                 </ul>
               </div>
               <div>
@@ -280,7 +337,7 @@ export default function Home() {
               </div>
               <div className="flex space-x-4 mt-6">
                 <button 
-                  onClick={() => window.open(`${BackendHandler.baseUrl}/ping`, '_blank')}
+                  onClick={() => window.open(`${BackendHandler.getBaseUrl()}/ping`, '_blank')}
                   className="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600"
                 >
                   Test Connection
@@ -308,7 +365,7 @@ export default function Home() {
             <main className="items-center sm:items-start">
               <Input 
                 placeholder="What do you want to learn about today?" 
-                onEnterPress={handleEnterPress}
+                onEnterPress={() => handleEnterPress(inputValue)}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
               />
