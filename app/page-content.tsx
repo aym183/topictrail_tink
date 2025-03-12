@@ -5,6 +5,7 @@ import { MainGraph } from "@/app/main-network"
 import { useState, useEffect, useRef, useCallback } from "react"
 import { BackendHandler } from "@/app/backend-handler"
 import '@/app/styles/page.css';
+import { event } from '../lib/gtag';
 
 interface Node {
   id: string;
@@ -291,6 +292,15 @@ export default function Home() {
     setShowDebugModal(false);
   };
 
+  const handleEnterClick = () => {
+    event({
+      action: 'click',
+      category: 'Button',
+      label: 'Enter',
+      value: 1,
+    });
+  };
+
   // Don't render anything until we're on the client side
   if (!mounted) return null;
 
@@ -365,7 +375,10 @@ export default function Home() {
             <main className="items-center sm:items-start">
               <Input 
                 placeholder="What do you want to learn about today?" 
-                onEnterPress={() => handleEnterPress(inputValue)}
+                onEnterPress={() => {
+                  handleEnterPress(inputValue);
+                  handleEnterClick();
+                }}
                 value={inputValue}
                 onChange={(e) => setInputValue(e.target.value)}
               />
